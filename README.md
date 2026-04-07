@@ -21,7 +21,7 @@ A **Retrieval-Augmented Generation (RAG)** system that allows users to upload PD
 
 ## 🏗️ Architecture
 
-<img src="/Users/satvikpandey/Downloads/Nielet/mermaid-diagram.png" alt="Description" width="600" height="200" align="center">
+<img src="mermaid-diagram.png" alt="Description" width="600" height="200" align="center">
 
 ---
 
