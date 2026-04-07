@@ -71,7 +71,7 @@ RAGify follows the **Retrieval-Augmented Generation (RAG)** approach:
 git clone https://github.com/satvik078/RAGify.git
 cd RAGify
 pip install -r requirements.txt
-```
+
 ---
 
 ## 🔑 Environment Setup
@@ -118,7 +118,7 @@ RAGify/
 │   └── rag_chain.py
 ├── data/uploads/
 └── assets/
-
+```
 ---
 
 ## 🎯 Use Cases
