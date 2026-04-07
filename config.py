@@ -14,14 +14,38 @@ BASE_DIR = Path(__file__).resolve().parent
 UPLOAD_DIR = BASE_DIR / "data" / "uploads"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
-# ── HuggingFace ──────────────────────────────────────────────────────────
-HUGGINGFACE_API_KEY = os.getenv("HUGGINGFACE_API_KEY", "")
+
+# ========================================================================
+# 🔧 CONFIGURATION MODE (CHOOSE ONE)
+# ========================================================================
+
+# ===================== ☁️ CLOUD (Streamlit Secrets) =====================
+import streamlit as st
+
+HUGGINGFACE_API_KEY = st.secrets.get("HF_API_KEY", "")
+OPENAI_API_KEY = st.secrets.get("OPENAI_API_KEY", "")
+
+SUPABASE_URL = st.secrets.get("SUPABASE_URL", "")
+SUPABASE_SERVICE_KEY = st.secrets.get("SUPABASE_KEY", "")
+
+# ===================== 💻 LOCAL (.env file) =============================
+"""
+UNCOMMENT THIS BLOCK FOR LOCAL DEVELOPMENT
+
+HUGGINGFACE_API_KEY = os.getenv("HF_API_KEY", "")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+
+SUPABASE_URL = os.getenv("SUPABASE_URL", "")
+SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_KEY", "")
+"""
+# ========================================================================
+
+
+# ── Models ──────────────────────────────────────────────────────────────
 LLM_MODEL = os.getenv("LLM_MODEL", "Qwen/Qwen2.5-7B-Instruct")
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
 
-# ── Supabase ─────────────────────────────────────────────────────────────
-SUPABASE_URL = os.getenv("SUPABASE_URL", "")
-SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "")
+# ── Supabase Config ─────────────────────────────────────────────────────
 SUPABASE_TABLE_NAME = os.getenv("SUPABASE_TABLE_NAME", "documents")
 SUPABASE_QUERY_NAME = os.getenv("SUPABASE_QUERY_NAME", "match_documents")
 
