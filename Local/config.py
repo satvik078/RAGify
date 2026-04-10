@@ -14,7 +14,6 @@ BASE_DIR = Path(__file__).resolve().parent
 UPLOAD_DIR = BASE_DIR / "data" / "uploads"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
-
 # ========================================================================
 # 🔧 CONFIGURATION MODE (CHOOSE ONE)
 # ========================================================================
@@ -37,10 +36,9 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_KEY", "")
-"""
 # ========================================================================
 
-
+"""
 # ── Models ──────────────────────────────────────────────────────────────
 LLM_MODEL = os.getenv("LLM_MODEL", "Qwen/Qwen2.5-7B-Instruct")
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2")

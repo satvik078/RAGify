@@ -1,0 +1,393 @@
+{% extends "base.html" %}
+{% block title %}RAG Assistant – AI Platform{% endblock %}
+
+{% block content %}
+<div class="chat-layout">
+
+  <!-- ══════════════════════ SIDEBAR ══════════════════════ -->
+  <div class="chat-sidebar">
+    <div class="sidebar-title">🧠 RAG Assistant</div>
+
+    <!-- Connection Status -->
+    <div class="sidebar-section">
+      <button class="sidebar-btn btn-outline" onclick="testConnection()">🔌 Test Connection</button>
+      <div id="conn-status" class="conn-status"></div>
+    </div>
+
+    <!-- Upload Documents -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">📁 Upload PDFs</div>
+      <div
+        class="drop-zone"
+        id="drop-zone"
+        onclick="document.getElementById('pdf-input').click()"
+        ondragover="onDragOver(event)"
+        ondragleave="onDragLeave(event)"
+        ondrop="onDrop(event)"
+      >
+        <div class="drop-icon">📄</div>
+        <div class="drop-label">Click or drag PDFs here</div>
+      </div>
+      <input
+        type="file"
+        id="pdf-input"
+        accept=".pdf"
+        multiple
+        style="display:none"
+        onchange="handleFileSelect(this.files)"
+      />
+      <div id="selected-files" class="selected-files"></div>
+      <button class="sidebar-btn btn-primary" id="index-btn" onclick="indexDocuments()" style="display:none">
+        ⚡ Index Documents
+      </button>
+      <div id="upload-progress" class="upload-progress" style="display:none">
+        <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+        <div class="progress-label" id="progress-label">Indexing…</div>
+      </div>
+    </div>
+
+    <!-- Indexed Documents -->
+    <div class="sidebar-section" id="indexed-section">
+      <div class="sidebar-section-title">📊 Indexed Documents</div>
+      <div id="indexed-files-list"><span class="muted-text">Loading…</span></div>
+    </div>
+
+    <!-- Danger Zone -->
+    <div class="sidebar-section danger-section">
+      <div class="sidebar-section-title">🗑️ Danger Zone</div>
+      <button class="sidebar-btn btn-danger-outline" onclick="clearDocuments()">Clear All Documents</button>
+      <button class="sidebar-btn btn-outline" onclick="clearChat()">Clear Chat</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════ MAIN CHAT ══════════════════════ -->
+  <div class="chat-main">
+    <div class="chat-messages" id="chat-messages">
+      <div class="message bot-message">
+        <div class="message-avatar">🧠</div>
+        <div class="message-bubble">
+          Hello, <strong>{{ session.name }}</strong>! 👋<br/>
+          I'm your RAG Document Assistant powered by <strong>Qwen-7B</strong> + Supabase.<br/><br/>
+          To get started:<br/>
+          1️⃣ Upload PDF documents and click "Index Documents"<br/>
+          2️⃣ Ask questions about your documents below
+        </div>
+      </div>
+    </div>
+
+    <div class="chat-input-area">
+      <div class="chat-input-row">
+        <textarea
+          id="user-input"
+          placeholder="Ask a question about your documents…"
+          rows="1"
+          onkeydown="handleKey(event)"
+        ></textarea>
+        <button class="btn-send" id="send-btn" onclick="sendMessage()">Send ➤</button>
+      </div>
+      <div class="chat-footer-note">
+        Press <kbd>Enter</kbd> to send · <kbd>Shift+Enter</kbd> for new line
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════ SCRIPTS ══════════════════════ -->
+<script>
+  const messagesDiv  = document.getElementById("chat-messages");
+  const inputEl      = document.getElementById("user-input");
+  const sendBtn      = document.getElementById("send-btn");
+  let   pendingFiles = [];
+
+  // ── Load doc stats on page load ────────────────────────────────────────
+  window.addEventListener("load", loadDocStats);
+
+  async function loadDocStats() {
+    try {
+      const res  = await fetch("/api/doc_stats");
+      const data = await res.json();
+      renderIndexedFiles(data.files || [], data.chunk_count || 0);
+    } catch (_) {
+      document.getElementById("indexed-files-list").innerHTML =
+        '<span class="muted-text">Could not load stats.</span>';
+    }
+  }
+
+  function renderIndexedFiles(files, chunkCount) {
+    const el = document.getElementById("indexed-files-list");
+    if (!files.length) {
+      el.innerHTML = '<span class="muted-text">No documents indexed yet.</span>';
+      return;
+    }
+    el.innerHTML =
+      `<div class="chunk-count">${chunkCount} chunks · ${files.length} file(s)</div>` +
+      files.map(f =>
+        `<div class="file-item">📄 ${f}</div>`
+      ).join("");
+  }
+
+  // ── Connection test ────────────────────────────────────────────────────
+  async function testConnection() {
+    showConnStatus("Testing…", "info");
+    const res  = await fetch("/api/test_connection", { method: "POST" });
+    const data = await res.json();
+    if (data.connected) showConnStatus("● Supabase Connected", "ok");
+    else showConnStatus("● Not Connected: " + (data.error || ""), "error");
+  }
+
+  function showConnStatus(msg, type) {
+    const el = document.getElementById("conn-status");
+    el.textContent = msg;
+    el.className = "conn-status conn-" + type;
+  }
+
+  // ── File handling ──────────────────────────────────────────────────────
+  function onDragOver(e) {
+    e.preventDefault();
+    document.getElementById("drop-zone").classList.add("drop-active");
+  }
+  function onDragLeave(e) {
+    document.getElementById("drop-zone").classList.remove("drop-active");
+  }
+  function onDrop(e) {
+    e.preventDefault();
+    document.getElementById("drop-zone").classList.remove("drop-active");
+    const files = Array.from(e.dataTransfer.files).filter(f => f.name.endsWith(".pdf"));
+    addFiles(files);
+  }
+  function handleFileSelect(fileList) {
+    addFiles(Array.from(fileList));
+  }
+  function addFiles(newFiles) {
+    pendingFiles = [...pendingFiles, ...newFiles];
+    renderSelectedFiles();
+  }
+  function renderSelectedFiles() {
+    const el = document.getElementById("selected-files");
+    if (!pendingFiles.length) {
+      el.innerHTML = "";
+      document.getElementById("index-btn").style.display = "none";
+      return;
+    }
+    el.innerHTML = pendingFiles.map((f, i) =>
+      `<div class="sel-file">📄 ${f.name}
+         <span class="rm-file" onclick="removeFile(${i})">✕</span>
+       </div>`
+    ).join("");
+    document.getElementById("index-btn").style.display = "block";
+  }
+  function removeFile(idx) {
+    pendingFiles.splice(idx, 1);
+    renderSelectedFiles();
+  }
+
+  // ── Index Documents ────────────────────────────────────────────────────
+  async function indexDocuments() {
+    if (!pendingFiles.length) return;
+
+    const progressEl = document.getElementById("upload-progress");
+    const fillEl     = document.getElementById("progress-fill");
+    const labelEl    = document.getElementById("progress-label");
+    const indexBtn   = document.getElementById("index-btn");
+
+    progressEl.style.display = "block";
+    indexBtn.disabled = true;
+    fillEl.style.width = "20%";
+    labelEl.textContent = `Uploading ${pendingFiles.length} file(s)…`;
+
+    const formData = new FormData();
+    pendingFiles.forEach(f => formData.append("files", f));
+
+    try {
+      fillEl.style.width = "50%";
+      labelEl.textContent = "Indexing & embedding…";
+
+      const res  = await fetch("/api/upload_docs", { method: "POST", body: formData });
+      const data = await res.json();
+
+      fillEl.style.width = "100%";
+
+      if (data.error) {
+        labelEl.textContent = "❌ " + data.error;
+      } else {
+        const ok  = data.files.filter(f => f.status === "ok");
+        labelEl.textContent =
+          `✅ Indexed ${ok.length} file(s) · ${data.total_chunks} chunks stored`;
+        pendingFiles = [];
+        renderSelectedFiles();
+        loadDocStats();
+        appendBotMessage(
+          `📚 You can now ask questions about them!`,
+          []
+        );
+      }
+    } catch (err) {
+      labelEl.textContent = "❌ Upload failed. Check console.";
+      console.error(err);
+    } finally {
+      indexBtn.disabled = false;
+      setTimeout(() => { progressEl.style.display = "none"; }, 4000);
+    }
+  }
+
+  // ── Clear documents ────────────────────────────────────────────────────
+  async function clearDocuments() {
+    if (!confirm("Clear ALL indexed documents from Supabase? This cannot be undone.")) return;
+    const res  = await fetch("/api/clear_docs", { method: "POST" });
+    const data = await res.json();
+    if (data.status === "ok") {
+      loadDocStats();
+      appendBotMessage("🗑️ All documents have been cleared from the vector store.", []);
+    } else {
+      appendBotMessage("❌ Failed to clear documents: " + (data.error || "Unknown error"), []);
+    }
+  }
+
+  // ── Clear chat ─────────────────────────────────────────────────────────
+  function clearChat() {
+    messagesDiv.innerHTML = "";
+    appendBotMessage("Chat cleared. Ask me anything about your documents!", []);
+  }
+
+  // ── Chat ───────────────────────────────────────────────────────────────
+  function handleKey(e) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  }
+
+  function appendUserMessage(text) {
+    const wrapper = document.createElement("div");
+    wrapper.className = "message user-message";
+
+    const avatar = document.createElement("div");
+    avatar.className = "message-avatar";
+    avatar.textContent = "👤";
+
+    const bubble = document.createElement("div");
+    bubble.className = "message-bubble";
+    bubble.textContent = text;
+
+    wrapper.appendChild(avatar);
+    wrapper.appendChild(bubble);
+    messagesDiv.appendChild(wrapper);
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+  }
+
+  function appendBotMessage(text, sources) {
+    const wrapper = document.createElement("div");
+    wrapper.className = "message bot-message";
+
+    const avatar = document.createElement("div");
+    avatar.className = "message-avatar";
+    avatar.textContent = "🧠";
+
+    const content = document.createElement("div");
+    content.className = "message-content";
+
+    const bubble = document.createElement("div");
+    bubble.className = "message-bubble";
+    bubble.innerHTML = text.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+                           .replace(/\n/g, "<br/>");
+    content.appendChild(bubble);
+
+    // Source citations
+    if (sources && sources.length > 0) {
+      const srcToggle = document.createElement("div");
+      srcToggle.className = "sources-toggle";
+      srcToggle.textContent = `📄 ${sources.length} source(s) — click to expand`;
+      srcToggle.onclick = () => {
+        srcList.style.display = srcList.style.display === "none" ? "block" : "none";
+        srcToggle.textContent = srcList.style.display === "none"
+          ? `📄 ${sources.length} source(s) — click to expand`
+          : `📄 ${sources.length} source(s) — click to collapse`;
+      };
+
+      const srcList = document.createElement("div");
+      srcList.className = "sources-list";
+      srcList.style.display = "none";
+      sources.forEach(src => {
+        const card = document.createElement("div");
+        card.className = "source-card";
+        card.innerHTML =
+          `<strong>📄 ${src.source || "Unknown"}</strong> · Page ${src.page || "?"}<br/>
+           <span class="src-snippet">${src.content || ""}</span>`;
+        srcList.appendChild(card);
+      });
+
+      content.appendChild(srcToggle);
+      content.appendChild(srcList);
+    }
+
+    wrapper.appendChild(avatar);
+    wrapper.appendChild(content);
+    messagesDiv.appendChild(wrapper);
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    return wrapper;
+  }
+
+  function appendTyping() {
+    const wrapper = document.createElement("div");
+    wrapper.className = "message bot-message";
+    wrapper.id = "typing-indicator";
+
+    const avatar = document.createElement("div");
+    avatar.className = "message-avatar";
+    avatar.textContent = "🧠";
+
+    const bubble = document.createElement("div");
+    bubble.className = "message-bubble typing-bubble";
+    bubble.innerHTML = '<span></span><span></span><span></span>';
+
+    wrapper.appendChild(avatar);
+    wrapper.appendChild(bubble);
+    messagesDiv.appendChild(wrapper);
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+  }
+
+  function removeTyping() {
+    const el = document.getElementById("typing-indicator");
+    if (el) el.remove();
+  }
+
+  async function sendMessage() {
+    const text = inputEl.value.trim();
+    if (!text) return;
+
+    inputEl.value = "";
+    inputEl.style.height = "auto";
+    sendBtn.disabled = true;
+    appendUserMessage(text);
+    appendTyping();
+
+    try {
+      const res  = await fetch("/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: text }),
+      });
+      const data = await res.json();
+      removeTyping();
+
+      if (data.error) {
+        appendBotMessage("⚠️ " + data.error, []);
+      } else {
+        appendBotMessage(data.response || "No response received.", data.sources || []);
+      }
+    } catch (err) {
+      removeTyping();
+      appendBotMessage("⚠️ Connection error. Please try again.", []);
+    } finally {
+      sendBtn.disabled = false;
+      inputEl.focus();
+    }
+  }
+
+  // Auto-resize textarea
+  inputEl.addEventListener("input", function () {
+    this.style.height = "auto";
+    this.style.height = Math.min(this.scrollHeight, 120) + "px";
+  });
+</script>
+{% endblock %}

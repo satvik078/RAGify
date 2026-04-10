@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Sign Up – RAGify{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+  <div class="auth-card">
+    <div class="auth-header">
+      <div class="auth-icon">✨</div>
+      <h2>Create Account</h2>
+      <p>Join RAGify and start chatting with your documents</p>
+    </div>
+
+    <form method="POST" action="{{ url_for('signup') }}" class="auth-form">
+      <div class="form-group">
+        <label for="name">Full Name</label>
+        <input
+          type="text" id="name" name="name"
+          placeholder="Jane Doe"
+          required autocomplete="name"
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="email">Email Address</label>
+        <input
+          type="email" id="email" name="email"
+          placeholder="you@example.com"
+          required autocomplete="email"
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password <small>(min 6 chars)</small></label>
+        <input
+          type="password" id="password" name="password"
+          placeholder="••••••••"
+          required minlength="6"
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="confirm_password">Confirm Password</label>
+        <input
+          type="password" id="confirm_password" name="confirm_password"
+          placeholder="••••••••"
+          required minlength="6"
+        />
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-full">Create Account →</button>
+    </form>
+
+    <p class="auth-switch">
+      Already have an account?
+      <a href="{{ url_for('login') }}">Log in here</a>
+    </p>
+
+    <p class="auth-switch" style="margin-top: .75rem;">
+      <a href="{{ url_for('index') }}">← Back to Home</a>
+    </p>
+  </div>
+</div>
+{% endblock %}

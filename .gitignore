@@ -21,3 +21,7 @@ data/uploads/*
 Thumbs.db
 implementation_plan.md
 Vision_Transformer_research paper.pptx
+webapp/data/uploads/*
+uploaded_docs/*
+webapp/HOW_TO_RUN.txt
+webapp.zip

@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard – AI Platform{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+  <div class="dashboard-header">
+    <h1>🛡️ Admin Dashboard</h1>
+    <p>Monitor registered users and their model usage</p>
+  </div>
+
+  <!-- Stats Row -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon">👥</div>
+      <div class="stat-value">{{ total_users }}</div>
+      <div class="stat-label">Total Users</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">✅</div>
+      <div class="stat-value">{{ active_users }}</div>
+      <div class="stat-label">Active Users</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">🤖</div>
+      <div class="stat-value">{{ total_uses }}</div>
+      <div class="stat-label">Total Model Uses</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">🔴</div>
+      <div class="stat-value">{{ total_users - active_users }}</div>
+      <div class="stat-label">Disabled Accounts</div>
+    </div>
+  </div>
+
+  <!-- Users Table -->
+  <div class="table-card">
+    <div class="table-header">
+      <h2>Registered Users</h2>
+      <span class="table-count">{{ total_users }} total</span>
+    </div>
+
+    {% if users %}
+    <div class="table-wrapper">
+      <table class="user-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Joined</th>
+            <th>Last Login</th>
+            <th>Model Uses</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for user in users %}
+          <tr class="{% if not user.is_active %}row-disabled{% endif %}">
+            <td class="td-id">{{ loop.index }}</td>
+            <td class="td-name">{{ user.name }}</td>
+            <td class="td-email">{{ user.email }}</td>
+            <td class="td-date">{{ user.created_at[:10] }}</td>
+            <td class="td-date">
+              {% if user.last_login %}
+                {{ user.last_login[:16].replace('T', ' ') }}
+              {% else %}
+                <span class="never">Never</span>
+              {% endif %}
+            </td>
+            <td class="td-usage">
+              <span class="usage-badge">{{ user.usage_count }}</span>
+            </td>
+            <td>
+              {% if user.is_active %}
+                <span class="status-dot active"></span> Active
+              {% else %}
+                <span class="status-dot inactive"></span> Disabled
+              {% endif %}
+            </td>
+            <td>
+              <form method="POST" action="{{ url_for('toggle_user', user_id=user.id) }}"
+                    onsubmit="return confirm('Toggle this user\'s account status?')">
+                <button type="submit"
+                  class="btn-sm {% if user.is_active %}btn-danger{% else %}btn-success{% endif %}">
+                  {% if user.is_active %}Disable{% else %}Enable{% endif %}
+                </button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-icon">👤</div>
+      <p>No users have signed up yet.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
