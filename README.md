@@ -28,7 +28,7 @@ A **Retrieval-Augmented Generation (RAG)** system that allows users to upload PD
 ## 🧩 Tech Stack
 
 ### Frontend
-- Streamlit  
+- Html, Css, Javascript
 
 ### Backend
 - Python  
