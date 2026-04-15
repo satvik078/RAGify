@@ -69,7 +69,7 @@ RAGify follows the **Retrieval-Augmented Generation (RAG)** approach:
 
 ```bash
 git clone https://github.com/satvik078/RAGify.git
-cd RAGify
+cd RAGify/webapp
 pip install -r requirements.txt
 
 ---
@@ -85,11 +85,11 @@ SUPABASE_KEY=your_key
 
 ## ▶️ Run the App
 
-streamlit run app.py
+python app.py
 
 ### Open in browser:
 
-http://localhost:8501
+http://127.0.0.1:5000
 
 ---
 
