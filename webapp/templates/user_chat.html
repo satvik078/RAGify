@@ -17,31 +17,21 @@
     <!-- Upload Documents -->
     <div class="sidebar-section">
       <div class="sidebar-section-title">📁 Upload PDFs</div>
-      <div
-        class="drop-zone"
-        id="drop-zone"
-        onclick="document.getElementById('pdf-input').click()"
-        ondragover="onDragOver(event)"
-        ondragleave="onDragLeave(event)"
-        ondrop="onDrop(event)"
-      >
+      <div class="drop-zone" id="drop-zone" onclick="document.getElementById('pdf-input').click()"
+        ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
         <div class="drop-icon">📄</div>
         <div class="drop-label">Click or drag PDFs here</div>
       </div>
-      <input
-        type="file"
-        id="pdf-input"
-        accept=".pdf"
-        multiple
-        style="display:none"
-        onchange="handleFileSelect(this.files)"
-      />
+      <input type="file" id="pdf-input" accept=".pdf" multiple style="display:none"
+        onchange="handleFileSelect(this.files)" />
       <div id="selected-files" class="selected-files"></div>
       <button class="sidebar-btn btn-primary" id="index-btn" onclick="indexDocuments()" style="display:none">
         ⚡ Index Documents
       </button>
       <div id="upload-progress" class="upload-progress" style="display:none">
-        <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="progress-fill"></div>
+        </div>
         <div class="progress-label" id="progress-label">Indexing…</div>
       </div>
     </div>
@@ -66,23 +56,21 @@
       <div class="message bot-message">
         <div class="message-avatar">🧠</div>
         <div class="message-bubble">
-          Hello, <strong>{{ session.name }}</strong>! 👋<br/>
-          I'm your RAG Document Assistant powered by <strong>Qwen-7B</strong> + Supabase.<br/><br/>
-          To get started:<br/>
-          1️⃣ Upload PDF documents and click "Index Documents"<br/>
-          2️⃣ Ask questions about your documents below
+          Hello, <strong>{{ session.name }}</strong>! 👋<br />
+          I'm your RAG Document Assistant powered by <strong>Qwen-7B</strong> + Supabase.<br /><br />
+          To get started:<br />
+          1️⃣ Click on test connection
+          2️⃣ Upload PDF documents and click "Index Documents"<br />
+          3️⃣ Ask questions about your documents below
+
         </div>
       </div>
     </div>
 
     <div class="chat-input-area">
       <div class="chat-input-row">
-        <textarea
-          id="user-input"
-          placeholder="Ask a question about your documents…"
-          rows="1"
-          onkeydown="handleKey(event)"
-        ></textarea>
+        <textarea id="user-input" placeholder="Ask a question about your documents…" rows="1"
+          onkeydown="handleKey(event)"></textarea>
         <button class="btn-send" id="send-btn" onclick="sendMessage()">Send ➤</button>
       </div>
       <div class="chat-footer-note">
@@ -94,17 +82,17 @@
 
 <!-- ══════════════════════ SCRIPTS ══════════════════════ -->
 <script>
-  const messagesDiv  = document.getElementById("chat-messages");
-  const inputEl      = document.getElementById("user-input");
-  const sendBtn      = document.getElementById("send-btn");
-  let   pendingFiles = [];
+  const messagesDiv = document.getElementById("chat-messages");
+  const inputEl = document.getElementById("user-input");
+  const sendBtn = document.getElementById("send-btn");
+  let pendingFiles = [];
 
   // ── Load doc stats on page load ────────────────────────────────────────
   window.addEventListener("load", loadDocStats);
 
   async function loadDocStats() {
     try {
-      const res  = await fetch("/api/doc_stats");
+      const res = await fetch("/api/doc_stats");
       const data = await res.json();
       renderIndexedFiles(data.files || [], data.chunk_count || 0);
     } catch (_) {
@@ -129,7 +117,7 @@
   // ── Connection test ────────────────────────────────────────────────────
   async function testConnection() {
     showConnStatus("Testing…", "info");
-    const res  = await fetch("/api/test_connection", { method: "POST" });
+    const res = await fetch("/api/test_connection", { method: "POST" });
     const data = await res.json();
     if (data.connected) showConnStatus("● Supabase Connected", "ok");
     else showConnStatus("● Not Connected: " + (data.error || ""), "error");
@@ -186,9 +174,9 @@
     if (!pendingFiles.length) return;
 
     const progressEl = document.getElementById("upload-progress");
-    const fillEl     = document.getElementById("progress-fill");
-    const labelEl    = document.getElementById("progress-label");
-    const indexBtn   = document.getElementById("index-btn");
+    const fillEl = document.getElementById("progress-fill");
+    const labelEl = document.getElementById("progress-label");
+    const indexBtn = document.getElementById("index-btn");
 
     progressEl.style.display = "block";
     indexBtn.disabled = true;
@@ -202,7 +190,7 @@
       fillEl.style.width = "50%";
       labelEl.textContent = "Indexing & embedding…";
 
-      const res  = await fetch("/api/upload_docs", { method: "POST", body: formData });
+      const res = await fetch("/api/upload_docs", { method: "POST", body: formData });
       const data = await res.json();
 
       fillEl.style.width = "100%";
@@ -210,7 +198,7 @@
       if (data.error) {
         labelEl.textContent = "❌ " + data.error;
       } else {
-        const ok  = data.files.filter(f => f.status === "ok");
+        const ok = data.files.filter(f => f.status === "ok");
         labelEl.textContent =
           `✅ Indexed ${ok.length} file(s) · ${data.total_chunks} chunks stored`;
         pendingFiles = [];
@@ -233,7 +221,7 @@
   // ── Clear documents ────────────────────────────────────────────────────
   async function clearDocuments() {
     if (!confirm("Clear ALL indexed documents from Supabase? This cannot be undone.")) return;
-    const res  = await fetch("/api/clear_docs", { method: "POST" });
+    const res = await fetch("/api/clear_docs", { method: "POST" });
     const data = await res.json();
     if (data.status === "ok") {
       loadDocStats();
@@ -289,7 +277,7 @@
     const bubble = document.createElement("div");
     bubble.className = "message-bubble";
     bubble.innerHTML = text.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-                           .replace(/\n/g, "<br/>");
+      .replace(/\n/g, "<br/>");
     content.appendChild(bubble);
 
     // Source citations
@@ -362,7 +350,7 @@
     appendTyping();
 
     try {
-      const res  = await fetch("/chat", {
+      const res = await fetch("/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: text }),

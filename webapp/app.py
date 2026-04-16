@@ -312,7 +312,7 @@ def upload_docs():
     all_chunks = []
 
     try:
-        from backend.document_loader import save_uploaded_file, load_pdf
+        from backend.document_loader import load_pdf
         from backend.text_splitter   import split_documents
         from backend.vector_store    import add_documents
     except ImportError as e:
@@ -328,15 +328,7 @@ def upload_docs():
         f.save(save_path)
 
         try:
-            # Reuse the Streamlit helper by passing a file-like with .name attr
-            class _FakeUpload:
-                name = filename
-                def read(self_):
-                    with open(save_path, "rb") as fh:
-                        return fh.read()
-
-            saved_path = save_uploaded_file(_FakeUpload())
-            pages      = load_pdf(saved_path)
+            pages      = load_pdf(save_path)
             chunks     = split_documents(pages)
             all_chunks.extend(chunks)
             results.append({"file": filename, "pages": len(pages), "chunks": len(chunks), "status": "ok"})
